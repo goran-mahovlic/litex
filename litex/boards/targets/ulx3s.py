@@ -18,7 +18,7 @@ from litex.soc.integration.builder import *
 from litedram.modules import MT48LC16M16
 from litedram.phy import GENSDRPHY
 
-from liteeth.phy.ecp5rgmii import LiteEthPHYRGMII
+from liteeth.phy.rmii import LiteEthPHYRMII
 from liteeth.mac import LiteEthMAC
 
 # CRG ----------------------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ class _CRG(Module):
     def __init__(self, platform, sys_clk_freq):
         self.clock_domains.cd_sys = ClockDomain()
         self.clock_domains.cd_sys_ps = ClockDomain(reset_less=True)
-
+        self.clock_domains.cd_eth = ClockDomain()
         # # #
 
         self.cd_sys.clk.attr.add("keep")
@@ -44,6 +44,7 @@ class _CRG(Module):
         pll.register_clkin(clk25, 25e6)
         pll.create_clkout(self.cd_sys, sys_clk_freq, phase=11)
         pll.create_clkout(self.cd_sys_ps, sys_clk_freq, phase=20)
+        pll.create_clkout(self.cd_eth, 50e6)        
         self.specials += AsyncResetSynchronizer(self.cd_sys, rst)
 
         # sdram clock
@@ -56,7 +57,7 @@ class _CRG(Module):
 # BaseSoC ------------------------------------------------------------------------------------------
 
 class BaseSoC(SoCSDRAM):
-    def __init__(self, device="LFE5U-25F", toolchain="diamond", **kwargs):
+    def __init__(self, device="LFE5U-85F", toolchain="diamond", **kwargs):
         platform = ulx3s.Platform(device=device, toolchain=toolchain)
         sys_clk_freq = int(50e6)
         SoCSDRAM.__init__(self, platform, clk_freq=sys_clk_freq,
@@ -82,11 +83,11 @@ class EthernetSoC(BaseSoC):
     }
     mem_map.update(BaseSoC.mem_map)
 
-    def __init__(self, toolchain="diamond", **kwargs):
-        BaseSoC.__init__(self, toolchain=toolchain, **kwargs)
+    def __init__(self, **kwargs):
+        BaseSoC.__init__(self, **kwargs)
 
-        self.submodules.ethphy = LiteEthPHYRGMII(
-            self.platform.request("eth"))
+        self.submodules.ethphy = LiteEthPHYRMII(self.platform.request("eth_clocks"),
+self.platform.request("eth"))
         self.add_csr("ethphy")
         self.submodules.ethmac = LiteEthMAC(phy=self.ethphy, dw=32,
             interface="wishbone", endianness=self.cpu.endianness)
@@ -97,10 +98,16 @@ class EthernetSoC(BaseSoC):
 
         self.ethphy.crg.cd_eth_rx.clk.attr.add("keep")
         self.ethphy.crg.cd_eth_tx.clk.attr.add("keep")
-        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_rx.clk, 1e9/125e6)
-        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_tx.clk, 1e9/125e6)
+        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_rx.clk, 1e9/12.5e6)
+        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_tx.clk, 1e9/12.5e6)
+ #       self.platform.add_false_path_constraints(
+ #           self.crg.cd_sys.clk,        	
+ #           self.ethphy.crg.cd_eth_rx.clk,
+ #           self.ethphy.crg.cd_eth_tx.clk)
+
 
 # Build --------------------------------------------------------------------------------------------
+
 
 def main():
     parser = argparse.ArgumentParser(description="LiteX SoC on ULX3S")
@@ -109,10 +116,16 @@ def main():
     parser.add_argument("--device", dest="device", default="LFE5U-85F",
         help='FPGA device, ULX3S can be populated with LFE5U-85F (default) or LFE5U-45F')
     builder_args(parser)
+    parser.add_argument("--with-ethernet", action="store_true",
+help="enable Ethernet support")
     soc_sdram_args(parser)
     args = parser.parse_args()
 
-    soc = BaseSoC(device=args.device, toolchain=args.toolchain, **soc_sdram_argdict(args))
+#    soc = BaseSoC(device=args.device, toolchain=args.toolchain, **soc_sdram_argdict(args))
+#    builder = Builder(soc, **builder_argdict(args))
+#    builder.build()
+    cls = EthernetSoC if args.with_ethernet else BaseSoC
+    soc = cls(**soc_sdram_argdict(args))
     builder = Builder(soc, **builder_argdict(args))
     builder.build()
 

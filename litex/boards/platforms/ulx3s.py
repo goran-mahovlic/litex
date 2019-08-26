@@ -37,25 +37,31 @@ _io = [
         Subsignal("dm", Pins("U19 E20")),
         IOStandard("LVCMOS33"), Misc("SLEWRATE=FAST")
     ),
-
+    # ethernet
+    ("eth_clocks", 0,
+        Subsignal("ref_clk", Pins("L17")),
+        IOStandard("LVCMOS33"),
+    ),
     ("eth", 0,
-        Subsignal("rst_n", Pins("U17")),
-        Subsignal("mdio", Pins("U18")),
-        Subsignal("mdc", Pins("T18")),
-        Subsignal("rx_ctl", Pins("U19")),
-        Subsignal("rx_data", Pins("T20 U20 T19 R18")),
-        Subsignal("tx_ctl", Pins("R20")),
-        Subsignal("tx_data", Pins("N19 N20 P18 P20")),
-        IOStandard("LVCMOS25")
+        Subsignal("rst_n", Pins("A2")),
+        Subsignal("rx_data", Pins("E3 F4")),
+        Subsignal("crs_dv", Pins("G3")),
+        Subsignal("tx_en", Pins("B4")),
+        Subsignal("tx_data", Pins("C4 B1")),
+        Subsignal("mdc", Pins("H4")),
+        Subsignal("mdio", Pins("G5")),
+        Subsignal("rx_er", Pins("A4")),
+        Subsignal("int_n", Pins("F3")),
+        IOStandard("LVCMOS33")
     ),
      # sdcard
 
-    ("sdcard", 0,
-        Subsignal("data", Pins("L15 L16 K14 M13"), Misc("PULLUP True")),
-        Subsignal("cmd", Pins("L13"), Misc("PULLUP True")),
-        Subsignal("clk", Pins("K18")),
-        IOStandard("LVCMOS33"), Misc("SLEW=FAST"),
-    ),
+#    ("sdcard", 0,
+#        Subsignal("data", Pins("L15 L16 K14 M13"), Misc("PULLUP True")),
+#        Subsignal("cmd", Pins("L13"), Misc("PULLUP True")),
+#        Subsignal("clk", Pins("K18")),
+#        IOStandard("LVCMOS33"), Misc("SLEW=FAST"),
+#    ),
 
     ("wifi_gpio0", 0, Pins("L2"), IOStandard("LVCMOS33")),
 
