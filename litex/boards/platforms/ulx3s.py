@@ -38,6 +38,28 @@ _io = [
         IOStandard("LVCMOS33"), Misc("SLEWRATE=FAST")
     ),
 
+    # ethernet
+    ("eth", 0,
+        Subsignal("rst_n", Pins("A2")),
+        Subsignal("rx_data", Pins("E3 F4")),
+        Subsignal("crs_dv", Pins("G3")),
+        Subsignal("tx_en", Pins("B4")),
+        Subsignal("tx_data", Pins("C4 B1")),
+        Subsignal("mdc", Pins("H4")),
+        Subsignal("mdio", Pins("G5")),
+        Subsignal("rx_er", Pins("A4")),
+        Subsignal("int_n", Pins("F3")),
+        IOStandard("LVCMOS33")
+     ),
+
+     # sdcard
+     ("sdcard", 0,
+        Subsignal("data", Pins("L15 L16 K14 M13"), Misc("PULLUP True")),
+        Subsignal("cmd", Pins("L13"), Misc("PULLUP True")),
+        Subsignal("clk", Pins("K18")),
+        IOStandard("LVCMOS33"), Misc("SLEW=FAST")
+),
+
     ("wifi_gpio0", 0, Pins("L2"), IOStandard("LVCMOS33")),
 
     ("ext0p", 0, Pins("B11"), IOStandard("LVCMOS33")),
@@ -71,5 +93,5 @@ class Platform(LatticePlatform):
     default_clk_name = "clk25"
     default_clk_period = 1e9/25e6
 
-    def __init__(self, device="LFE5U-45F", **kwargs):
+    def __init__(self, device="LFE5U-85F", **kwargs):
         LatticePlatform.__init__(self, device + "-6BG381C", _io, **kwargs)
