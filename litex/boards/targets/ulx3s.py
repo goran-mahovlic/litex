@@ -18,7 +18,7 @@ from litex.soc.integration.builder import *
 from litedram.modules import MT48LC16M16
 from litedram.phy import GENSDRPHY
 
-from liteeth.phy.ecp5rgmii import LiteEthPHYRGMII
+from liteeth.phy.rmii import LiteEthPHYRMII
 from liteeth.mac import LiteEthMAC
 
 # CRG ----------------------------------------------------------------------------------------------
@@ -82,11 +82,10 @@ class EthernetSoC(BaseSoC):
     }
     mem_map.update(BaseSoC.mem_map)
 
-    def __init__(self, toolchain="diamond", **kwargs):
-        BaseSoC.__init__(self, toolchain=toolchain, **kwargs)
+    def __init__(self, **kwargs):
+        BaseSoC.__init__(self, **kwargs)
 
-        self.submodules.ethphy = LiteEthPHYRGMII(
-            self.platform.request("eth"))
+        self.submodules.ethphy = LiteEthPHYRMII(self.platform.request("eth"))
         self.add_csr("ethphy")
         self.submodules.ethmac = LiteEthMAC(phy=self.ethphy, dw=32,
             interface="wishbone", endianness=self.cpu.endianness)
@@ -97,10 +96,16 @@ class EthernetSoC(BaseSoC):
 
         self.ethphy.crg.cd_eth_rx.clk.attr.add("keep")
         self.ethphy.crg.cd_eth_tx.clk.attr.add("keep")
-        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_rx.clk, 1e9/125e6)
-        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_tx.clk, 1e9/125e6)
+        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_rx.clk, 1e9/12.5e6)
+        self.platform.add_period_constraint(self.ethphy.crg.cd_eth_tx.clk, 1e9/12.5e6)
+        self.platform.add_false_path_constraints(
+            self.crg.cd_sys.clk,
+            self.ethphy.crg.cd_eth_rx.clk,
+            self.ethphy.crg.cd_eth_tx.clk)
+
 
 # Build --------------------------------------------------------------------------------------------
+
 
 def main():
     parser = argparse.ArgumentParser(description="LiteX SoC on ULX3S")
@@ -109,10 +114,16 @@ def main():
     parser.add_argument("--device", dest="device", default="LFE5U-85F",
         help='FPGA device, ULX3S can be populated with LFE5U-85F (default) or LFE5U-45F')
     builder_args(parser)
+    parser.add_argument("--with-ethernet", action="store_true",
+help="enable Ethernet support")
     soc_sdram_args(parser)
     args = parser.parse_args()
 
-    soc = BaseSoC(device=args.device, toolchain=args.toolchain, **soc_sdram_argdict(args))
+#    soc = BaseSoC(device=args.device, toolchain=args.toolchain, **soc_sdram_argdict(args))
+#    builder = Builder(soc, **builder_argdict(args))
+#    builder.build()
+    cls = EthernetSoC if args.with_ethernet else BaseSoC
+    soc = cls(**soc_sdram_argdict(args))
     builder = Builder(soc, **builder_argdict(args))
     builder.build()
 
